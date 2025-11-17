@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Puzzle {{ puzzle.id }} - Christmas Treasure Hunt</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body class="puzzle-page">
+    <div class="snow-container">
+        <div class="snowflake">❅</div>
+        <div class="snowflake">❆</div>
+        <div class="snowflake">❅</div>
+        <div class="snowflake">❆</div>
+        <div class="snowflake">❅</div>
+    </div>
+
+    <header class="puzzle-header">
+        <div class="team-info">
+            <span class="team-badge">{{ team.name }}</span>
+        </div>
+        <h1>🔐 Safe {{ puzzle.id }}: {{ puzzle.title }}</h1>
+    </header>
+
+    <main class="puzzle-content">
+        <div class="puzzle-container">
+            <div id="puzzlePrompt" class="puzzle-prompt">
+                <p>{{ puzzle.prompt_text }}</p>
+                {% if puzzle.image_path %}
+                <img src="{{ puzzle.image_path }}" alt="Puzzle image" class="puzzle-image">
+                {% endif %}
+            </div>
+
+            <div id="puzzleResult" class="puzzle-result" style="display: none;"></div>
+
+            <form id="answerForm" class="answer-form">
+                {% if puzzle.type == 'code_input' %}
+                <div class="form-group">
+                    <label for="answerInput">Enter 4-digit code:</label>
+                    <input type="text" id="answerInput" placeholder="0000" maxlength="4" pattern="\d{4}" required>
+                </div>
+                {% else %}
+                <div class="form-group">
+                    <label for="answerInput">Your answer:</label>
+                    <input type="text" id="answerInput" placeholder="Type your answer here..." required>
+                </div>
+                {% endif %}
+
+                <div id="feedback" class="feedback"></div>
+
+                <div class="button-group">
+                    <button type="submit" class="btn-primary">Submit Answer</button>
+                    <a href="/main" class="btn-secondary">Back to Main</a>
+                </div>
+            </form>
+        </div>
+    </main>
+
+    <script>
+        const puzzleId = {{ puzzle.id }};
+        let puzzleData = null;
+
+        async function loadPuzzleState() {
+            try {
+                const response = await fetch(`/api/puzzles/${puzzleId}`);
+                puzzleData = await response.json();
+
+                if (puzzleData.solved) {
+                    showSolvedState();
+                } else if (puzzleData.opened && puzzleData.unlock_message) {
+                    showUnlockMessage();
+                }
+            } catch (error) {
+                console.error('Error loading puzzle state:', error);
+            }
+        }
+
+        function showSolvedState() {
+            const form = document.getElementById('answerForm');
+            const result = document.getElementById('puzzleResult');
+
+            form.style.display = 'none';
+            result.style.display = 'block';
+            result.className = 'puzzle-result success';
+            result.innerHTML = `
+                <h2>✅ Puzzle Solved!</h2>
+                ${puzzleData.result_value ? `<p class="result-value">Result: <strong>${puzzleData.result_value}</strong></p>` : ''}
+                ${puzzleData.unlock_message ? `<p class="unlock-message">${puzzleData.unlock_message}</p>` : ''}
+                <a href="/main" class="btn-primary">Back to Main</a>
+            `;
+        }
+
+        function showUnlockMessage() {
+            const feedback = document.getElementById('feedback');
+            feedback.className = 'feedback success';
+            feedback.textContent = puzzleData.unlock_message;
+        }
+
+        document.getElementById('answerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const answer = document.getElementById('answerInput').value;
+            const feedback = document.getElementById('feedback');
+
+            feedback.textContent = '';
+
+            try {
+                const endpoint = {{ (puzzle.type == 'code_input' and puzzle.id == 7)|tojson }} ?
+                    `/api/puzzles/${puzzleId}/unlock` :
+                    `/api/puzzles/${puzzleId}/submit`;
+
+                const payload = {{ (puzzle.type == 'code_input' and puzzle.id == 7)|tojson }} ?
+                    { code: answer } :
+                    { answer: answer };
+
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await response.json();
+
+                if (data.correct || data.opened) {
+                    feedback.className = 'feedback success';
+                    feedback.textContent = data.message;
+
+                    if (data.result_value) {
+                        feedback.innerHTML += `<br><strong>Result: ${data.result_value}</strong>`;
+                    }
+
+                    if (data.unlock_message) {
+                        feedback.innerHTML += `<br><strong>${data.unlock_message}</strong>`;
+                    }
+
+                    // Redirect to main after 2 seconds
+                    setTimeout(() => {
+                        window.location.href = '/main';
+                    }, 2000);
+                } else {
+                    feedback.className = 'feedback error';
+                    feedback.textContent = data.message || 'Incorrect. Please try again.';
+                }
+            } catch (error) {
+                feedback.className = 'feedback error';
+                feedback.textContent = 'Connection error. Please try again.';
+            }
+        });
+
+        // Load puzzle state on page load
+        loadPuzzleState();
+    </script>
+</body>
+</html>

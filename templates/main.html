@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Christmas Treasure Hunt - Main</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body class="main-page">
+    <div class="snow-container">
+        <div class="snowflake">❅</div>
+        <div class="snowflake">❆</div>
+        <div class="snowflake">❅</div>
+        <div class="snowflake">❆</div>
+        <div class="snowflake">❅</div>
+    </div>
+
+    <header class="main-header">
+        <h1>🎄 Christmas Treasure Hunt 🎄</h1>
+        <div class="team-info">
+            <span class="team-badge">{{ team.name }}</span>
+            <button id="logoutBtn" class="btn-logout">Logout</button>
+        </div>
+    </header>
+
+    <main class="puzzle-grid-container">
+        <h2 class="section-title">🔐 The Room of Locked Safes</h2>
+        <p class="instructions">Click on each safe to reveal the puzzle inside. Open all 8 safes to complete the treasure hunt!</p>
+
+        <div id="puzzleGrid" class="puzzle-grid">
+            <!-- Puzzles will be loaded here -->
+        </div>
+    </main>
+
+    <script>
+        let puzzles = [];
+
+        async function loadPuzzles() {
+            try {
+                const response = await fetch('/api/puzzles');
+                puzzles = await response.json();
+                renderPuzzles();
+            } catch (error) {
+                console.error('Error loading puzzles:', error);
+            }
+        }
+
+        function renderPuzzles() {
+            const grid = document.getElementById('puzzleGrid');
+            grid.innerHTML = '';
+
+            puzzles.forEach(puzzle => {
+                const card = document.createElement('div');
+                card.className = 'puzzle-card';
+
+                if (puzzle.solved) {
+                    card.classList.add('solved');
+                } else if (!puzzle.unlockable) {
+                    card.classList.add('locked');
+                }
+
+                if (puzzle.gold) {
+                    card.classList.add('gold');
+                }
+
+                let icon = '🔒';
+                if (puzzle.solved) {
+                    icon = '✅';
+                } else if (puzzle.gold) {
+                    icon = '🏆';
+                } else if (puzzle.type === 'code_input') {
+                    icon = '🔑';
+                }
+
+                card.innerHTML = `
+                    <div class="puzzle-icon">${icon}</div>
+                    <div class="puzzle-number">Safe ${puzzle.id}</div>
+                    <h3 class="puzzle-title">${puzzle.title}</h3>
+                    <div class="puzzle-status">
+                        ${puzzle.solved ? 'OPENED' : puzzle.unlockable ? 'LOCKED' : 'REQUIRES SAFE 7'}
+                    </div>
+                `;
+
+                if (puzzle.unlockable) {
+                    card.style.cursor = 'pointer';
+                    card.addEventListener('click', () => {
+                        window.location.href = `/puzzle/${puzzle.id}`;
+                    });
+                }
+
+                grid.appendChild(card);
+            });
+        }
+
+        document.getElementById('logoutBtn').addEventListener('click', async () => {
+            if (confirm('Are you sure you want to logout?')) {
+                await fetch('/api/logout', { method: 'POST' });
+                window.location.href = '/login';
+            }
+        });
+
+        // Load puzzles on page load
+        loadPuzzles();
+
+        // Refresh puzzle states every 10 seconds
+        setInterval(loadPuzzles, 10000);
+    </script>
+</body>
+</html>

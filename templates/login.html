@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Christmas Treasure Hunt - Login</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body class="login-page">
+    <div class="snow-container">
+        <div class="snowflake">❅</div>
+        <div class="snowflake">❆</div>
+        <div class="snowflake">❅</div>
+        <div class="snowflake">❆</div>
+        <div class="snowflake">❅</div>
+    </div>
+
+    <div class="login-container">
+        <h1 class="christmas-title">🎄 Christmas Treasure Hunt 🎄</h1>
+        <p class="subtitle">Find CA by Opening 8 Safes</p>
+
+        <form id="loginForm" class="login-form">
+            <div class="form-group">
+                <label for="teamNumber">Team Number (1-12)</label>
+                <select id="teamNumber" required>
+                    <option value="">Select your team...</option>
+                    <option value="1">Team 1</option>
+                    <option value="2">Team 2</option>
+                    <option value="3">Team 3</option>
+                    <option value="4">Team 4</option>
+                    <option value="5">Team 5</option>
+                    <option value="6">Team 6</option>
+                    <option value="7">Team 7</option>
+                    <option value="8">Team 8</option>
+                    <option value="9">Team 9</option>
+                    <option value="10">Team 10</option>
+                    <option value="11">Team 11</option>
+                    <option value="12">Team 12</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="registrationCode">Registration Code</label>
+                <input type="text" id="registrationCode" placeholder="Enter your code..." required>
+            </div>
+
+            <div id="errorMessage" class="error-message"></div>
+
+            <button type="submit" class="btn-primary">🎁 Enter the Hunt</button>
+        </form>
+    </div>
+
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const teamNumber = document.getElementById('teamNumber').value;
+            const registrationCode = document.getElementById('registrationCode').value;
+            const errorMessage = document.getElementById('errorMessage');
+
+            errorMessage.textContent = '';
+
+            try {
+                const response = await fetch('/api/enter', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        team: parseInt(teamNumber),
+                        registration_code: registrationCode
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.ok) {
+                    window.location.href = '/main';
+                } else {
+                    errorMessage.textContent = data.error || 'Login failed';
+                }
+            } catch (error) {
+                errorMessage.textContent = 'Connection error. Please try again.';
+            }
+        });
+    </script>
+</body>
+</html>
