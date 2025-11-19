@@ -46,17 +46,18 @@ def init_db():
                 Puzzle(id=5, title="special sequence", type="image",
                        prompt_text="Decode the sequence in the image.",
                        image_path="/static/images/puzzle5.jpg",
-                       answer="4320"),
-                Puzzle(id=6, title="special square", type="image",
-                       prompt_text="What word appears in the magic square?",
+                       answer="900"),
+                Puzzle(id=6, title="special line", type="image",
+                       prompt_text="What appears in the image?",
                        image_path="/static/images/puzzle6.jpg",
-                       answer="sorry"),
+                       answer="genie"),
                 Puzzle(id=7, title="Password Lock", type="code_input",
                        prompt_text="Enter the 4-digit code to unlock this safe.",
-                       answer="3874", unlock_message="Find CA"),
+                       answer="3874", unlock_message="Solving this problem... impressive! \nActually, Santa is a brokerwho guides you to new treasure. If you go to Santa and say the secreat code '다음 CA는 나야!' you'll receive a secret instruction."),
                 Puzzle(id=8, title="Golden Safe", type="text",
                        prompt_text="What is the final word?",
-                       answer="saengsansung", gold=True, unlock_condition='{"requires_puzzle_opened": 7}'),
+                       answer="saengsansung", gold=True, unlock_condition='{"requires_puzzle_opened": 7}',
+                       unlock_message="Now you have overcome every trial and found the treasure. You are fully qualified to become the next CA."),
             ]
             db.session.add_all(puzzles)
 
@@ -224,7 +225,7 @@ def get_puzzle(puzzle_id):
         'opened': state.opened if state else False,
         'solved': state.solved if state else False,
         'result_value': puzzle.result_value if (state and state.solved) else None,
-        'unlock_message': puzzle.unlock_message if (state and state.opened and puzzle.unlock_message) else None
+        'unlock_message': puzzle.unlock_message if (state and (state.opened or state.solved) and puzzle.unlock_message) else None
     }
 
     return jsonify(puzzle_data)
